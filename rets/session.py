@@ -412,6 +412,8 @@ class Session(object):
         response = self._request(
             capability="Search", options={"query": parameters}, stream=True
         )
+
+        results = []
         while True:
             try:
                 for res in search_cursor.generator(response=response):
@@ -429,6 +431,13 @@ class Session(object):
                 else:
                     break  # Got max row exception but do not get more results
 
+                # Include the count in the results
+        return {
+            "results": results,
+            "count": search_cursor.count
+                }
+
+    
     def _request(self, capability, options=None, stream=False):
         """
         Make a _request to the RETS server
