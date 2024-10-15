@@ -233,7 +233,7 @@ The `count` parameter enables the retrieval of the total number of matching reco
 ```python
 >>> search_res = rets_client.search('Property', 'RES', dmql_query='(Status=A)', count=True)
 >>> print(search_res.count)  # Prints the total number of matching records
-
+```
 The resource and resource_class parameters are required. You must also provide either
 the search_filter parameter or the dmql_query parameter.
 
