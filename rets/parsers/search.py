@@ -67,7 +67,11 @@ class OneXSearchCursor(Base):
                     "Received {0!s} results from this search".format(self.parsed_rows)
                 )
                 raise MaxrowException(self.parsed_rows)
-
+             # handle count
+            elif "COUNT" == elem.tag:
+                self.count = elem.get("Records")
+                logger.debug(f"COUNT Tag found: {self.count} records available")
+                
             else:
                 # This is a tag we don't process (like COUNT)
                 continue
