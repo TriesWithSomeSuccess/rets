@@ -79,5 +79,6 @@ class OneXSearchCursor(Base):
 
             elem.clear()
         
-        if self.count is not None:
-            yield {"count": self.count}
+        if self.count is None:
+            self.count = 0
+        yield {"count": self.count}
