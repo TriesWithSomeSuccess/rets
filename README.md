@@ -226,6 +226,13 @@ Use the client's search method to search for real estate data. All searches
 - standard_names: Boolean for if the search uses standard names.
     Defaults to `0` indicating the search uses system field names
 - response_format: The format of the response you would like back, defaults to `COMPACT-DECODED`
+- count: Boolean for if the search should return the count of records. Defaults to `False`.
+
+The `count` parameter enables the retrieval of the total number of matching records without fetching the actual data.
+
+```python
+>>> search_res = rets_client.search('Property', 'RES', dmql_query='(Status=A)', count=True)
+>>> print(search_res.count)  # Prints the total number of matching records
 
 The resource and resource_class parameters are required. You must also provide either
 the search_filter parameter or the dmql_query parameter.
