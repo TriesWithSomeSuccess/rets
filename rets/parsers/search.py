@@ -78,3 +78,6 @@ class OneXSearchCursor(Base):
                 continue
 
             elem.clear()
+        
+        if self.count is not None:
+            yield {"count": self.count}
