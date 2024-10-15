@@ -341,102 +341,101 @@ class Session(object):
         return collection
 
     def search(
-        self,
-        resource,
-        resource_class,
-        search_filter=None,
-        dmql_query=None,
-        limit=9999999,
-        offset=0,
-        optional_parameters=None,
-        auto_offset=True,
-        query_type="DMQL2",
-        standard_names=0,
-        response_format="COMPACT-DECODED",
-    ):
-        """
-        Preform a search on the RETS board
-        :param resource: The resource that contains the class to search
-        :param resource_class: The class to search
-        :param search_filter: The query as a dict
-        :param dmql_query: The query in dmql format
-        :param limit: Limit search values count
-        :param offset: Offset for RETS request. Useful when RETS limits number of results or transactions
-        :param optional_parameters: Values for option paramters
-        :param auto_offset: Should the search be allowed to trigger subsequent searches.
-        :param query_type: DMQL or DMQL2 depending on the rets server.
-        :param standard_names: 1 to use standard names, 0 to use system names
-        :param response_format: COMPACT-DECODED, COMPACT, or STANDARD-XML
-        :return: generator of dicts
-        """
+    self,
+    resource,
+    resource_class,
+    search_filter=None,
+    dmql_query=None,
+    limit=9999999,
+    offset=0,
+    optional_parameters=None,
+    auto_offset=True,
+    query_type="DMQL2",
+    standard_names=0,
+    response_format="COMPACT-DECODED",
+):
+    """
+    Perform a search on the RETS board
+    :param resource: The resource that contains the class to search
+    :param resource_class: The class to search
+    :param search_filter: The query as a dict
+    :param dmql_query: The query in DMQL format
+    :param limit: Limit search values count
+    :param offset: Offset for RETS request. Useful when RETS limits number of results or transactions
+    :param optional_parameters: Values for option parameters
+    :param auto_offset: Should the search be allowed to trigger subsequent searches.
+    :param query_type: DMQL or DMQL2 depending on the rets server.
+    :param standard_names: 1 to use standard names, 0 to use system names
+    :param response_format: COMPACT-DECODED, COMPACT, or STANDARD-XML
+    :return: dict containing results and count
+    """
 
-        if (search_filter and dmql_query) or (not search_filter and not dmql_query):
-            raise ValueError("You may specify either a search_filter or dmql_query")
+    if (search_filter and dmql_query) or (not search_filter and not dmql_query):
+        raise ValueError("You may specify either a search_filter or dmql_query")
 
-        search_helper = DMQLHelper()
+    search_helper = DMQLHelper()
 
-        if dmql_query:
-            dmql_query = search_helper.dmql(query=dmql_query)
-        else:
-            dmql_query = search_helper.filter_to_dmql(filter_dict=search_filter)
+    if dmql_query:
+        dmql_query = search_helper.dmql(query=dmql_query)
+    else:
+        dmql_query = search_helper.filter_to_dmql(filter_dict=search_filter)
 
-        parameters = {
-            "SearchType": resource,
-            "Class": resource_class,
-            "Query": dmql_query,
-            "QueryType": query_type,
-            "Count": 1,
-            "Format": response_format,
-            "StandardNames": standard_names,
-        }
+    parameters = {
+        "SearchType": resource,
+        "Class": resource_class,
+        "Query": dmql_query,
+        "QueryType": query_type,
+        "Count": 1,
+        "Format": response_format,
+        "StandardNames": standard_names,
+    }
 
-        if not optional_parameters:
-            optional_parameters = {}
-        parameters.update(optional_parameters)
+    if not optional_parameters:
+        optional_parameters = {}
+    parameters.update(optional_parameters)
 
-        # if the Select parameter given is an array, format it as it needs to be
-        if "Select" in parameters and isinstance(parameters.get("Select"), list):
-            parameters["Select"] = ",".join(parameters["Select"])
+    # if the Select parameter given is an array, format it as it needs to be
+    if "Select" in parameters and isinstance(parameters.get("Select"), list):
+        parameters["Select"] = ",".join(parameters["Select"])
 
-        if limit:
-            parameters["Limit"] = limit
+    if limit:
+        parameters["Limit"] = limit
 
-        if offset:
-            parameters["Offset"] = offset
+    if offset:
+        parameters["Offset"] = offset
 
-        if self.search_parser:
-            search_cursor = self.search_parser
-        else:
-            search_cursor = OneXSearchCursor()
+    if self.search_parser:
+        search_cursor = self.search_parser
+    else:
+        search_cursor = OneXSearchCursor()
 
-        response = self._request(
-            capability="Search", options={"query": parameters}, stream=True
-        )
+    response = self._request(
+        capability="Search", options={"query": parameters}, stream=True
+    )
 
-        results = []
-        while True:
-            try:
-                for res in search_cursor.generator(response=response):
-                    yield res
-                break  # Got to end of generator without raising Maxrow exception
+    results = []
+    while True:
+        try:
+            for res in search_cursor.generator(response=response):
+                results.append(res)
+            break  # Got to end of generator without raising Maxrow exception
 
-            except MaxrowException as max_exception:
-                # Recursive searching if automatically performing offsets for the  client
-                if auto_offset and limit > max_exception.rows_returned:
-                    parameters["Limit"] = limit - max_exception.rows_returned  # have not returned results to the desired limit
-                    parameters["Offset"] = offset + max_exception.rows_returned  # adjust offset
-                    response = self._request(
-                        capability="Search", options={"query": parameters}, stream=True
-                    )
-                else:
-                    break  # Got max row exception but do not get more results
+        except MaxrowException as max_exception:
+            # Recursive searching if automatically performing offsets for the client
+            if auto_offset and limit > max_exception.rows_returned:
+                parameters["Limit"] = limit - max_exception.rows_returned  # have not returned results to the desired limit
+                parameters["Offset"] = offset + max_exception.rows_returned  # adjust offset
+                response = self._request(
+                    capability="Search", options={"query": parameters}, stream=True
+                )
+            else:
+                break  # Got max row exception but do not get more results
 
-                # Include the count in the results
-        return {
-            "results": results,
-            "count": search_cursor.count
-                }
-
+    # Include the count in the results
+    return {
+        "results": results,
+        "count": search_cursor.count
+    }
     
     def _request(self, capability, options=None, stream=False):
         """
