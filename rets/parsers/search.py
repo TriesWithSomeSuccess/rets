@@ -14,7 +14,8 @@ class OneXSearchCursor(Base):
 
     def __init__(self):
         self.parsed_rows = 0
-
+        self.count = None  # Add a count attribute
+        
     def generator(self, response):
         """
         Takes a response socket connection and iteratively parses and yields the results as python dictionaries.
